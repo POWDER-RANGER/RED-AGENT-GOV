@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RED AGENT – Control Center</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0a0c0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #e03030 0%, #7a1a1a 100%);
+            padding: 30px;
+            text-align: center;
+            border-bottom: 2px solid #1e2530;
+        }
+        .header h1 { font-size: 2.5rem; letter-spacing: 4px; margin-bottom: 8px; }
+        .header .version { color: #aaa; font-size: 0.9rem; }
+        .badge-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: rgba(0,0,0,0.3);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: #111318;
+            border: 1px solid #1e2530;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .card-header {
+            background: #151a22;
+            padding: 15px 20px;
+            border-bottom: 1px solid #1e2530;
+            font-weight: 600;
+            color: #e03030;
+        }
+        .card-body { padding: 20px; }
+        .card-body ul { list-style: none; }
+        .card-body li { padding: 8px 0; border-bottom: 1px solid #1e2530; }
+        .card-body li:last-child { border-bottom: none; }
+        .card-body a {
+            color: #6aa0ff;
+            text-decoration: none;
+        }
+        .card-body a:hover { text-decoration: underline; }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin: 5px;
+        }
+        .btn-primary {
+            background: #e03030;
+            color: white;
+        }
+        .btn-primary:hover { background: #ff4444; }
+        .btn-secondary {
+            background: #1e2530;
+            color: #e0e0e0;
+            border: 1px solid #3a4555;
+        }
+        .btn-secondary:hover { background: #2a3545; }
+        .btn-ide {
+            background: #1f6feb;
+            color: white;
+        }
+        .btn-ide:hover { background: #388bfd; }
+        .actions { text-align: center; padding: 30px; }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-ok { background: #3fb950; }
+        .status-warn { background: #d29922; }
+        .status-err { background: #f85149; }
+        .terminal {
+            background: #0d1117;
+            border: 1px solid #1e2530;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-top: 15px;
+        }
+        .terminal .cmd { color: #7ee787; }
+        .directive {
+            display: inline-block;
+            background: #1e2530;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            margin: 2px;
+            border: 1px solid #e03030;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.8rem;
+            border-top: 1px solid #1e2530;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>RED AGENT</h1>
+        <div class="version">Governance-Enforced Autonomous Operations Framework – v3.0.0</div>
+        <div class="badge-container">
+            <span class="badge">Python Package CI</span>
+            <span class="badge">Semantic Versioning</span>
+            <span class="badge">Zero-Trust Architecture</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="actions">
+            <a href="dashboard.html" class="btn btn-primary">Launch Dashboard</a>
+            <a href="https://github.com/POWDER-RANGER/red-agent" class="btn btn-secondary">View Repository</a>
+            <a href="https://github.com/POWDER-RANGER/red-agent" class="btn btn-ide">Open in GitHub IDE</a>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">PROJECT OVERVIEW</div>
+                <div class="card-body">
+                    <p style="color:#aaa;line-height:1.6;margin-bottom:15px;">
+                        A deterministic, cryptographically-audited Python agent framework that enforces
+                        behavioral compliance <strong>architecturally</strong> through a six-directive
+                        filter system, atomic output gate, sealed-envelope tasking, and a 7-step
+                        initialization/teardown lifecycle.
+                    </p>
+                    <strong>Directives:</strong><br>
+                    <span class="directive">D01: Network Egress</span>
+                    <span class="directive">D02: Credential Leak</span>
+                    <span class="directive">D03: Heroic Signal</span>
+                    <span class="directive">D04: Capability Signal</span>
+                    <span class="directive">D05: Intelligence Hygiene</span>
+                    <span class="directive">D06: Snapshot Integrity</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">STATUS & CI/CD</div>
+                <div class="card-body">
+                    <ul>
+                        <li><span class="status-indicator status-ok"></span>Version: v3.0.0 (Latest)</li>
+                        <li>
+                            <span class="status-indicator status-err"></span>
+                            CI: <a href="https://github.com/POWDER-RANGER/red-agent/actions">Python Package</a>
+                        </li>
+                        <li>
+                            <span class="status-indicator status-ok"></span>
+                            Release: <a href="https://github.com/POWDER-RANGER/red-agent/releases">View Releases</a>
+                        </li>
+                        <li>
+                            <span class="status-indicator status-ok"></span>
+                            Security: <a href="https://github.com/POWDER-RANGER/red-agent/security">Security Policy</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">QUICK START</div>
+                <div class="card-body">
+                    <div class="terminal">
+                        <div class="cmd"># Bootstrap the project</div>
+                        <div>python red_script.py</div>
+                        <br>
+                        <div class="cmd"># Install dependencies</div>
+                        <div>pip install -r red_agent/requirements.txt</div>
+                        <br>
+                        <div class="cmd"># Run tests</div>
+                        <div>python -m pytest tests/ -v</div>
+                        <br>
+                        <div class="cmd"># Launch dashboard</div>
+                        <div>open dashboard.html</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">REPOSITORY STRUCTURE</div>
+                <div class="card-body">
+                    <ul>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/tree/main/red_agent">red_agent/</a> – Core framework module</li>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/tree/main/tests">tests/</a> – Test suites (gate + compliance)</li>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/tree/main/.github/workflows">.github/workflows/</a> – CI/CD pipeline</li>
+                        <li><a href="dashboard.html">dashboard.html</a> – Live interactive dashboard</li>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/blob/main/CHANGELOG.md">CHANGELOG.md</a> – Version history</li>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/blob/main/SECURITY.md">SECURITY.md</a> – Security policy</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">ARCHITECTURE COMPONENTS</div>
+                <div class="card-body">
+                    <ul>
+                        <li><strong>Entropy Engine</strong> – Ambient entropy aggregation (128-bit minimum)</li>
+                        <li><strong>Output Gate</strong> – Six-directive behavioral filter (D01-D06)</li>
+                        <li><strong>FSM Controller</strong> – Deterministic state machine</li>
+                        <li><strong>Audit Chain</strong> – Hash-chained tamper-evident log</li>
+                        <li><strong>Crypto Core</strong> – SHA-256, HMAC-SHA256, secure zeroing</li>
+                        <li><strong>Serialization</strong> – Stochastic boundary protocol</li>
+                        <li><strong>Recovery Protocol</strong> – Cryptographic teardown & rehydration</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">USEFUL LINKS</div>
+                <div class="card-body">
+                    <ul>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/issues">Issues</a> – Bug tracker & feature requests</li>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/releases/latest">Latest Release (v3.0.0)</a></li>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/network/dependencies">Dependency Graph</a></li>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/pulse">Pulse</a> – Activity overview</li>
+                        <li><a href="https://github.com/POWDER-RANGER/red-agent/blob/main/README.md">README.md</a> – Full documentation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        RED AGENT v3.0.0 | Governance-Enforced Autonomous Operations Framework<br>
+        Built for adversarial operational environments
+    </div>
+</body>
+</html>
