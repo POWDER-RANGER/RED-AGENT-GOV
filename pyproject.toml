@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "red-agent"
+version = "3.0.0"
+description = "Governance-enforced Python agent engine for adversarial environments. Six-directive output gate, deterministic FSM, hash-chained audit, and cryptographic teardown."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "Curtis Farrar"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/POWDER-RANGER/red-agent"
+"Bug Tracker" = "https://github.com/POWDER-RANGER/red-agent/issues"
+
+[tool.setuptools.packages.find]
+where = [""]
+include = ["red_agent*"]
