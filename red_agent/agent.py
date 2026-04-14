@@ -18,23 +18,32 @@ Typical usage::
         recipient=recipient,
         need_to_know=["host", "port"],
     )
-    print(result.output)   # None if suppressed
+    print(result.output)  # None if suppressed
     agent.shutdown()
 """
+
 from __future__ import annotations
 
 import threading
-from typing import Any
 
 from .config.settings import AgentConfig
-from .core.constants import AgentState, ClassificationLevel, OutputDecision
 from .core.audit import AuditStore
+from .core.constants import AgentState, ClassificationLevel, OutputDecision
 from .core.fsm import AgentFSM
 from .core.gate import OutputAuthorizationGate
+from .core.initialization import run_initialization
 from .core.intelligence import IntelligenceStore, RecipientClassification
-from .core.initialization import InitializationError, run_initialization
-from .core.recovery import RecoverySignal, RecoverySignalVerifier, generate_recovery_signal
-from .core.tasking import TaskExecutorFn, TaskingEnvelope, TaskingUnit, TaskResult
+from .core.recovery import (
+    RecoverySignal,
+    RecoverySignalVerifier,
+    generate_recovery_signal,
+)
+from .core.tasking import (
+    TaskExecutorFn,
+    TaskingEnvelope,
+    TaskingUnit,
+    TaskResult,
+)
 from .core.teardown import TeardownResult, run_teardown
 
 
@@ -47,8 +56,7 @@ class RedAgent:
 
     Parameters
     ----------
-    config:
-        ``AgentConfig`` instance. Must include a ``pre_shared_key``.
+    config: ``AgentConfig`` instance. Must include a ``pre_shared_key``.
     """
 
     def __init__(self, config: AgentConfig) -> None:
@@ -76,7 +84,6 @@ class RedAgent:
                 result = run_initialization(self._config)
             except Exception as exc:
                 raise RedAgentError(f"Initialization failed: {exc}") from exc
-
             self._audit = result.audit
             self._gate = result.gate
             self._intelligence = result.intelligence
@@ -84,7 +91,9 @@ class RedAgent:
                 audit=result.audit,
                 initial_state=AgentState.INITIALIZING,
             )
-            self._fsm.transition(AgentState.IDLE, reason="initialization_complete")
+            self._fsm.transition(
+                AgentState.IDLE, reason="initialization_complete"
+            )
             self._verifier = RecoverySignalVerifier(
                 pre_shared_key=self._config.pre_shared_key
             )
@@ -94,7 +103,9 @@ class RedAgent:
         """Execute the 7-step graceful teardown; return teardown summary."""
         with self._lock:
             self._require_started()
-            self._fsm.transition(AgentState.TEARDOWN, reason="graceful_shutdown")
+            self._fsm.transition(
+                AgentState.TEARDOWN, reason="graceful_shutdown"
+            )
             result = run_teardown(
                 audit=self._audit,
                 intelligence=self._intelligence,
@@ -129,7 +140,7 @@ class RedAgent:
 
     def execute_task(
         self,
-        scope: dict[str, Any],
+        scope: dict[str, object],
         executor: TaskExecutorFn,
         recipient: RecipientClassification,
         need_to_know: list[str] | None = None,
@@ -138,41 +149,42 @@ class RedAgent:
         with self._lock:
             self._require_started()
             self._fsm.transition(AgentState.EXECUTING, reason="task_start")
-
-        envelope = TaskingEnvelope(
-            scope=scope,
-            executor=executor,
-            recipient_id=recipient.recipient_id,
-            need_to_know=need_to_know or list(scope.keys()),
-        )
-        unit = TaskingUnit.from_envelope(envelope)
-
-        try:
-            raw_output = unit.execute()
-        except Exception as exc:
-            with self._lock:
-                self._fault_active = True
+            envelope = TaskingEnvelope(
+                scope=scope,
+                executor=executor,
+                recipient_id=recipient.recipient_id,
+                need_to_know=need_to_know or list(scope.keys()),
+            )
+            unit = TaskingUnit.from_envelope(envelope)
+            try:
+                raw_output = unit.execute()
+            except Exception as exc:
+                with self._lock:
+                    self._fault_active = True
                 self._fsm.transition(AgentState.DEGRADED, reason=str(exc))
-            return TaskResult(task_id=envelope.task_id, output=None, suppressed=True)
-
-        evaluation = self._gate.evaluate(
-            content=str(raw_output) if raw_output is not None else "",
-            recipient_resolved=recipient.resolved,
-            fault_active=self._fault_active,
-            artifact_filter_results=self._intelligence.filter_results,
-        )
-
-        with self._lock:
-            self._fsm.transition(AgentState.IDLE, reason="task_complete")
-
-        if evaluation.decision == OutputDecision.AUTHORIZED:
-            return TaskResult(task_id=envelope.task_id, output=raw_output, suppressed=False)
-        return TaskResult(
-            task_id=envelope.task_id,
-            output=None,
-            suppressed=True,
-            suppression_reason=evaluation.suppression_reason,
-        )
+                return TaskResult(
+                    task_id=envelope.task_id, output=None, suppressed=True
+                )
+            evaluation = self._gate.evaluate(
+                content=str(raw_output) if raw_output is not None else "",
+                recipient_resolved=recipient.resolved,
+                fault_active=self._fault_active,
+                artifact_filter_results=self._intelligence.filter_results,
+            )
+            with self._lock:
+                self._fsm.transition(AgentState.IDLE, reason="task_complete")
+            if evaluation.decision == OutputDecision.AUTHORIZED:
+                return TaskResult(
+                    task_id=envelope.task_id,
+                    output=raw_output,
+                    suppressed=False,
+                )
+            return TaskResult(
+                task_id=envelope.task_id,
+                output=None,
+                suppressed=True,
+                suppression_reason=evaluation.suppression_reason,
+            )
 
     # ------------------------------------------------------------------
     # Recovery
@@ -189,7 +201,9 @@ class RedAgent:
             if not self._verifier.verify(signal):
                 return False
             if self._fsm.state == AgentState.DEGRADED:
-                self._fsm.transition(AgentState.IDLE, reason="recovery_signal_accepted")
+                self._fsm.transition(
+                    AgentState.IDLE, reason="recovery_signal_accepted"
+                )
                 self._fault_active = False
             return True
 
@@ -205,7 +219,9 @@ class RedAgent:
 
     def _require_started(self) -> None:
         if not self._started:
-            raise RedAgentError("Agent has not been started. Call start() first.")
+            raise RedAgentError(
+                "Agent has not been started. Call start() first."
+            )
 
 
 __all__ = ["RedAgent", "RedAgentError"]
