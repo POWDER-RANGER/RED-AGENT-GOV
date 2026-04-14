@@ -9,21 +9,21 @@ Without a key the payload is plain JSON-encoded bytes.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 from .crypto import hmac_sha256
 
 
 def transform(
     payload: Any,
-    transform_key: Optional[bytes] = None,
+    transform_key: bytes | None = None,
 ) -> bytes:
     """Serialize *payload* to wire bytes.
 
     Args:
-        payload:       JSON-serializable value.
-        transform_key: Optional 32-byte key.  When present the output is an
-                       envelope ``{"data": <hex>, "mac": <hex>}``.
+        payload: JSON-serializable value.
+        transform_key: Optional 32-byte key. When present the output is an
+            envelope ``{"data": <hex>, "mac": <hex>}``.
 
     Returns:
         UTF-8-encoded bytes ready for emission.
@@ -31,7 +31,6 @@ def transform(
     raw = json.dumps(payload, default=str, sort_keys=True).encode()
     if transform_key is None:
         return raw
-
     mac = hmac_sha256(transform_key, raw)
     envelope = json.dumps({"data": raw.hex(), "mac": mac})
     return envelope.encode()
