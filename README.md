@@ -1,5 +1,7 @@
 # RED AGENT
 
+[![CI](https://github.com/POWDER-RANGER/red-agent/actions/workflows/python-package.yml/badge.svg)](https://github.com/POWDER-RANGER/red-agent/actions/workflows/python-package.yml)
+
 > Governance-Enforced Autonomous Operations Framework — v3.0.0
 
 A deterministic, cryptographically-audited Python agent framework that enforces
