@@ -23,56 +23,7 @@
 ## ▣ SYSTEM DESIGNATION
 
 ```bash
-```
-╔══════════════════════════════════════════════════════════════╗
-║              🔴  RED AGENT GOV — SYSTEM STATUS              ║
-╠══════════════════════════════════════════════════════════════╣
-║  REPO     github.com/POWDER-RANGER/RED-AGENT-GOV            ║
-║  VERSION  v3.0.0                                            ║
-║  COMMIT   0d7bc1c  [README: GOV interface spec deployed]    ║
-║  BRANCH   main                                              ║
-╠══════════════════════════════════════════════════════════════╣
-║  PACKAGE STRUCTURE                                          ║
-║                                                             ║
-║  red_agent/                                                 ║
-║  ├── __init__.py          [259b  · public API surface]      ║
-║  ├── agent.py             [8.2KB · RedAgent + Config]       ║
-║  ├── constants.py         [6.7KB · all enums + FSM table]   ║
-║  ├── config/                                                ║
-║  │   └── settings.py      [AgentConfig full params]         ║
-║  ├── core/                                                  ║
-║  │   ├── audit.py         [hash-chain · ProbeDetector]      ║
-║  │   ├── constants.py     [core enums + transition table]   ║
-║  │   ├── directives.py    [D01–D06 stateless filters]       ║
-║  │   ├── fsm.py           [AgentFSM · RLock · 14 edges]     ║
-║  │   ├── gate.py          [OutputAuthorizationGate]         ║
-║  │   ├── initialization.py[7-step init + Step 06B]          ║
-║  │   ├── intelligence.py  [IntelligenceStore · D06 filter]  ║
-║  │   ├── recovery.py      [HMAC · nonce registry]           ║
-║  │   └── teardown.py      [7-step · SIGTERM handler]        ║
-║  └── utils/                                                 ║
-║      ├── crypto.py        [SHA256 · HMAC · secure_zero]     ║
-║      ├── entropy.py       [seed · StochasticTimingLayer]    ║
-║      └── serialization.py                                   ║
-╠══════════════════════════════════════════════════════════════╣
-║  GATE          NON-BYPASSABLE                               ║
-║  DIRECTIVES    D01 D02 D03 D04 D05 D06  ·  ALL ENFORCED    ║
-║  AUDIT         APPEND-ONLY · HASH-CHAINED · SEALED          ║
-║  TIMING        STOCHASTIC · DETERMINISTIC FALLBACK: BANNED  ║
-║  RECOVERY      HMAC-SHA256 · ANTI-REPLAY · BLACKHOLE POLICY ║
-║  MEMORY        SecureBuffer · zero_and_free · post-free RTE ║
-╠══════════════════════════════════════════════════════════════╣
-║  [✓] README    DEPLOYED  ·  13,618 bytes  ·  10:58 UTC      ║
-║  [✓] CI/CD     ACTIVE    ·  lint + scan + test              ║
-║  [✓] RELEASE   v3.0.0    ·  PUBLISHED · NOT DRAFT           ║
-║  [✓] LICENSE   RESTRICTED · ALL RIGHTS RESERVED             ║
-╠══════════════════════════════════════════════════════════════╣
-║                                                             ║
-║            COMPLIANCE IS ARCHITECTURAL.                     ║
-║                                                             ║
-║  🔴  WE ARE ONLINE.                                         ║
-╚══════════════════════════════════════════════════════════════╝
-```
+$ red-agent-gov --status
 
 [✓] Core Engine         : ONLINE
 [✓] Directive Enforcement: ACTIVE (D01–D06)
@@ -99,6 +50,36 @@ ENFORCEMENT MODEL:
 - No bypass mechanisms exist in architecture
 - All outputs are post-evaluation artifacts
 - All state transitions are audited and hash-linked
+
+---
+
+## ▣ PACKAGE STRUCTURE
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  red_agent/                                                ║
+╠══════════════════════════════════════════════════════════════╣
+║  ├── __init__.py          [259b  · public API surface]      ║
+║  ├── agent.py             [8.2KB · RedAgent + Config]        ║
+║  ├── constants.py         [6.7KB · all enums + FSM table]    ║
+║  ├── config/                                                ║
+║  │   └── settings.py      [AgentConfig full params]          ║
+║  ├── core/                                                  ║
+║  │   ├── audit.py         [hash-chain · ProbeDetector]        ║
+║  │   ├── constants.py     [core enums + transition table]     ║
+║  │   ├── directives.py    [D01–D06 stateless filters]        ║
+║  │   ├── fsm.py           [AgentFSM · RLock · 14 edges]      ║
+║  │   ├── gate.py          [OutputAuthorizationGate]           ║
+║  │   ├── initialization.py [7-step init + Step 06B]          ║
+║  │   ├── intelligence.py  [IntelligenceStore · D06 filter]   ║
+║  │   ├── recovery.py      [HMAC · nonce registry]             ║
+║  │   └── teardown.py      [7-step · SIGTERM handler]          ║
+║  └── utils/                                                 ║
+║      ├── crypto.py        [SHA256 · HMAC · secure_zero]       ║
+║      ├── entropy.py       [seed · StochasticTimingLayer]       ║
+║      └── serialization.py                                   ║
+╚══════════════════════════════════════════════════════════════╝
+```
 
 ---
 
