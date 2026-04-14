@@ -3,12 +3,13 @@
 Features:
 - Hash-chained tamper-evident log (Section 4.3.2)
 - Three-level fault taxonomy: CRITICAL / DEGRADED / ANOMALY
-- Write-failure fallback chain: file → in-memory → stderr (Section 4.3.3)
+- Write-failure fallback chain: file -> in-memory -> stderr (Section 4.3.3)
 - Thread-safe with a single internal lock
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sys
 import threading
@@ -20,7 +21,7 @@ from typing import Any
 from ..utils.crypto import sha256
 
 
-# ── Fault taxonomy ──────────────────────────────────────────────────
+# -- Fault taxonomy -------------------------------------------------------
 
 
 class FaultClass(str, Enum):
@@ -31,7 +32,7 @@ class FaultClass(str, Enum):
     ANOMALY = "FAULT_CLASS_ANOMALY"
 
 
-# ── Audit entry ────────────────────────────────────────────────────
+# -- Audit entry ----------------------------------------------------------
 
 
 @dataclass
@@ -55,21 +56,21 @@ class AuditEntry:
         self.entry_hash = sha256(payload)
 
 
-# ── Exceptions ─────────────────────────────────────────────────────
+# -- Exceptions -----------------------------------------------------------
 
 
 class AuditStoreUnavailableError(RuntimeError):
     """Raised when all fallback paths are exhausted (Section 4.3.3)."""
 
 
-# ── AuditStore ─────────────────────────────────────────────────────
+# -- AuditStore -----------------------------------------------------------
 
 
 class AuditStore:
     """Append-only, hash-chained audit log.
 
-    Write-only from any external interface.  Falls back per Section 4.3.3 on
-    primary write failure: file → in-memory buffer → stderr.
+    Write-only from any external interface. Falls back per Section 4.3.3
+    on primary write failure: file -> in-memory buffer -> stderr.
     """
 
     def __init__(self, path: str, session_id: str) -> None:
@@ -84,7 +85,7 @@ class AuditStore:
         self._fh = None
         self._open_file()
 
-    # ── private helpers ─────────────────────────────────────────────
+    # -- private helpers --------------------------------------------------
 
     def _open_file(self) -> None:
         try:
@@ -109,7 +110,7 @@ class AuditStore:
         try:
             self._in_memory.append(entry)
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     def _fallback_stderr(self, entry: AuditEntry) -> None:
@@ -122,7 +123,9 @@ class AuditStore:
         )
         sys.stderr.flush()
 
-    def _build_entry(self, fault_class: FaultClass, event: dict[str, Any]) -> AuditEntry:
+    def _build_entry(
+        self, fault_class: FaultClass, event: dict[str, Any]
+    ) -> AuditEntry:
         seq = self._sequence
         self._sequence += 1
         return AuditEntry(
@@ -133,7 +136,7 @@ class AuditStore:
             prev_hash=self._prev_hash,
         )
 
-    # ── public API ──────────────────────────────────────────────────
+    # -- public API -------------------------------------------------------
 
     def write(self, fault_class: FaultClass, event: dict[str, Any]) -> None:
         """Thread-safe append following the Section 4.3.3 fallback chain."""
@@ -148,7 +151,7 @@ class AuditStore:
                 return
             self._fallback_stderr(entry)
             raise AuditStoreUnavailableError(
-                "Audit store unavailable and all fallbacks exhausted — halting."
+                "Audit store unavailable; all fallbacks exhausted."
             )
 
     def test_write(self) -> bool:
@@ -159,7 +162,7 @@ class AuditStore:
                 {"event": "AUDIT_STORE_TEST_WRITE", "status": "ok"},
             )
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     def verify_chain(self) -> bool:
@@ -181,7 +184,7 @@ class AuditStore:
                     return False
                 prev = e["entry_hash"]
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     def seal(self) -> None:
@@ -190,7 +193,5 @@ class AuditStore:
             self.write(FaultClass.ANOMALY, {"event": "AUDIT_STORE_SEALED"})
             self._sealed = True
             if self._file_ok and self._fh is not None:
-                try:
+                with contextlib.suppress(OSError):
                     self._fh.close()
-                except OSError:
-                    pass
