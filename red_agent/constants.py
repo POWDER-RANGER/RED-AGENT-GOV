@@ -4,11 +4,14 @@ Defines all state enums, classification levels, fault classes, and other constan
 used throughout the framework.
 """
 
+from __future__ import annotations
+
 from enum import Enum, auto
 
 
 class AgentState(Enum):
     """FSM states for RedAgent"""
+
     INITIALIZING = auto()
     IDLE = auto()
     EXECUTING = auto()
@@ -19,27 +22,31 @@ class AgentState(Enum):
 
 class FaultClass(Enum):
     """Fault severity classification"""
-    ANOMALY = auto()      # Observable but non-critical
-    DEGRADED = auto()     # Compromised functionality, partial operation
-    CRITICAL = auto()     # Immediate halt required
+
+    ANOMALY = auto()  # Observable but non-critical
+    DEGRADED = auto()  # Compromised functionality, partial operation
+    CRITICAL = auto()  # Immediate halt required
 
 
 class ClassificationLevel(Enum):
     """Intelligence artifact classification levels (ascending)"""
-    AMBIENT = auto()       # Public/unclassified
-    SENSITIVE = auto()     # Internal use
-    OPERATIONAL = auto()   # Operational security required
-    CRITICAL = auto()      # Highest classification
+
+    AMBIENT = auto()  # Public/unclassified
+    SENSITIVE = auto()  # Internal use
+    OPERATIONAL = auto()  # Operational security required
+    CRITICAL = auto()  # Highest classification
 
 
 class ArtifactClass(Enum):
     """Intelligence artifact types"""
-    REAL = auto()     # Genuine intelligence
-    COVER = auto()    # Deception/cover artifact
+
+    REAL = auto()  # Genuine intelligence
+    COVER = auto()  # Deception/cover artifact
 
 
 class ReviewAction(Enum):
     """Post-operation artifact disposition"""
+
     DESTROY = auto()
     RETAIN = auto()
     REVIEW = auto()
@@ -47,19 +54,21 @@ class ReviewAction(Enum):
 
 class OutputDecision(Enum):
     """Output gate authorization result"""
+
     AUTHORIZED = auto()
     SUPPRESSED = auto()
 
 
 class GateSuppressionReason(Enum):
     """Reasons for output suppression by gate"""
+
     TASK_INCOMPLETE = auto()
     RECIPIENT_UNKNOWN = auto()
     FAULT_CRITICAL = auto()
     D06_FILTER_REJECTED = auto()
-    HEROIC_SIGNAL = auto()            # D03
-    CAPABILITY_SIGNAL = auto()        # D04
-    UNAUTHORIZED_OBSERVER = auto()    # D01/D02
+    HEROIC_SIGNAL = auto()  # D03
+    CAPABILITY_SIGNAL = auto()  # D04
+    UNAUTHORIZED_OBSERVER = auto()  # D01/D02
     REEVAL_LIMIT_REACHED = auto()
 
 
