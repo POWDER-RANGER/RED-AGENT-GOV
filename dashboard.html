@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RED AGENT — Live Dashboard</title>
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --panel:    #0f1318;
+    --border:   #1e2530;
+    --red:      #e03030;
+    --red-dim:  #7a1a1a;
+    --green:    #1fad6a;
+    --yellow:   #d4a017;
+    --cyan:     #1ab8c4;
+    --muted:    #4a5568;
+    --text:     #c9d1d9;
+    --bright:   #f0f4f8;
+    --font:     'Courier New', Courier, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOP BAR ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  header .logo {
+    color: var(--red);
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 3px;
+  }
+  header .version { color: var(--muted); font-size: 11px; }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+    transition: all .3s;
+  }
+  .status-pill .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; } 50% { opacity:.4; }
+  }
+  .status-pill.halted .dot { background: var(--red); box-shadow: 0 0 6px var(--red); animation:none; }
+  .status-pill.degraded .dot { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+  /* ── MAIN GRID ── */
+  main {
+    display: grid;
+    grid-template-columns: 220px 1fr 280px;
+    grid-template-rows: 1fr 180px;
+    gap: 1px;
+    flex: 1;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .panel {
+    background: var(--panel);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-title {
+    padding: 6px 12px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* ── FSM STATE PANEL ── */
+  #fsm-panel { grid-column: 1; grid-row: 1; }
+  .state-list { list-style: none; }
+  .state-item {
+    padding: 7px 10px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all .3s;
+  }
+  .state-item.active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(26,184,196,.07);
+    box-shadow: 0 0 8px rgba(26,184,196,.15);
+  }
+  .state-item.active .state-dot { background: var(--cyan); box-shadow: 0 0 5px var(--cyan); }
+  .state-item.halted-state.active {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(224,48,48,.07);
+  }
+  .state-item.halted-state.active .state-dot { background: var(--red); box-shadow: 0 0 5px var(--red); }
+  .state-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .transition-arrow {
+    text-align: center;
+    color: var(--border);
+    font-size: 10px;
+    margin: 2px 0;
+    letter-spacing: 1px;
+  }
+
+  /* ── DIRECTIVE METERS ── */
+  #dir-panel { grid-column: 3; grid-row: 1; }
+  .directive {
+    margin-bottom: 12px;
+  }
+  .directive-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .directive-label { font-size: 11px; color: var(--text); }
+  .directive-code { font-size: 10px; color: var(--cyan); letter-spacing: 1px; }
+  .directive-badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .badge-pass { background: rgba(31,173,106,.15); color: var(--green); border: 1px solid var(--green); }
+  .badge-fail { background: rgba(224,48,48,.15); color: var(--red); border: 1px solid var(--red); animation: failpulse .6s ease; }
+  .badge-idle { background: rgba(74,85,104,.15); color: var(--muted); border: 1px solid var(--muted); }
+  @keyframes failpulse { 0%{transform:scale(1)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }
+  .meter-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .meter-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width .4s, background .4s;
+  }
+
+  /* ── GATE MONITOR (CENTER) ── */
+  #gate-panel { grid-column: 2; grid-row: 1; }
+  .gate-verdict {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    gap: 10px;
+  }
+  .verdict-ring {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    transition: all .4s;
+    position: relative;
+  }
+  .verdict-ring.authorized {
+    border-color: var(--green);
+    color: var(--green);
+    box-shadow: 0 0 20px rgba(31,173,106,.3), inset 0 0 20px rgba(31,173,106,.05);
+  }
+  .verdict-ring.suppressed {
+    border-color: var(--red);
+    color: var(--red);
+    box-shadow: 0 0 20px rgba(224,48,48,.3), inset 0 0 20px rgba(224,48,48,.05);
+    animation: suppressshake .3s ease;
+  }
+  .verdict-ring.evaluating {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 15px rgba(26,184,196,.2);
+    animation: spin-border 1s linear infinite;
+  }
+  .verdict-ring.idle {
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  @keyframes suppressshake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}
+  }
+  @keyframes spin-border {
+    0%{box-shadow: 0 0 0 2px transparent, 4px 0 0 2px var(--cyan)}
+    100%{box-shadow: 0 0 0 2px transparent, 4px 0 0 2px var(--cyan)}
+  }
+  .gate-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    margin-top: 10px;
+  }
+  .stat-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px;
+    text-align: center;
+  }
+  .stat-val { font-size: 20px; font-weight: bold; color: var(--bright); }
+  .stat-val.green { color: var(--green); }
+  .stat-val.red { color: var(--red); }
+  .stat-val.yellow { color: var(--yellow); }
+  .stat-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+  .reeval-counter {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .reeval-pip {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    transition: all .3s;
+  }
+  .reeval-pip.active { background: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 5px var(--yellow); }
+  .reeval-pip.done { background: var(--red); border-color: var(--red); }
+  .suppression-reason {
+    font-size: 11px;
+    color: var(--red);
+    letter-spacing: 1px;
+    min-height: 16px;
+    text-align: center;
+  }
+  .gate-input-area {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .gate-input-area textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 8px;
+    resize: none;
+    outline: none;
+    transition: border-color .3s;
+  }
+  .gate-input-area textarea:focus { border-color: var(--cyan); }
+  .gate-input-area textarea::placeholder { color: var(--muted); }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  button {
+    padding: 5px 12px;
+    border-radius: 3px;
+    border: 1px solid;
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all .2s;
+  }
+  .btn-eval {
+    background: rgba(26,184,196,.1);
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+  .btn-eval:hover { background: rgba(26,184,196,.2); }
+  .btn-fault {
+    background: rgba(212,160,23,.1);
+    border-color: var(--yellow);
+    color: var(--yellow);
+  }
+  .btn-fault:hover { background: rgba(212,160,23,.2); }
+  .btn-clear {
+    background: rgba(74,85,104,.1);
+    border-color: var(--muted);
+    color: var(--muted);
+  }
+  .btn-clear:hover { background: rgba(74,85,104,.2); }
+  .btn-close-gate {
+    background: rgba(224,48,48,.1);
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .btn-close-gate:hover { background: rgba(224,48,48,.2); }
+  .btn-demo {
+    background: rgba(31,173,106,.1);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .btn-demo:hover { background: rgba(31,173,106,.2); }
+
+  /* ── AUDIT LOG ── */
+  #audit-panel { grid-column: 1 / span 3; grid-row: 2; }
+  .audit-log {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .log-entry {
+    display: grid;
+    grid-template-columns: 80px 90px 130px 1fr;
+    gap: 8px;
+    padding: 3px 4px;
+    border-radius: 2px;
+    font-size: 11px;
+    border-left: 2px solid transparent;
+    animation: fadein .2s ease;
+  }
+  @keyframes fadein { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:translateY(0)} }
+  .log-entry.AUTHORIZED { border-left-color: var(--green); background: rgba(31,173,106,.04); }
+  .log-entry.SUPPRESSED { border-left-color: var(--red); background: rgba(224,48,48,.04); }
+  .log-entry.FAULT      { border-left-color: var(--yellow); background: rgba(212,160,23,.04); }
+  .log-entry.SYS        { border-left-color: var(--muted); }
+  .log-seq  { color: var(--muted); font-size: 10px; }
+  .log-ts   { color: var(--muted); font-size: 10px; }
+  .log-type { font-weight: bold; letter-spacing: 1px; font-size: 10px; }
+  .log-type.AUTHORIZED { color: var(--green); }
+  .log-type.SUPPRESSED { color: var(--red); }
+  .log-type.FAULT      { color: var(--yellow); }
+  .log-type.SYS        { color: var(--muted); }
+  .log-msg  { color: var(--text); }
+  .chain-hash { color: var(--muted); font-size: 9px; margin-left: 4px; }
+
+  /* ── FAULT STRIP ── */
+  .fault-strip {
+    display: flex;
+    gap: 6px;
+    padding: 5px 12px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .fault-chip {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .2s;
+    user-select: none;
+  }
+  .fault-chip:hover { border-color: var(--yellow); color: var(--yellow); }
+  .fault-chip.active {
+    background: rgba(224,48,48,.15);
+    border-color: var(--red);
+    color: var(--red);
+    box-shadow: 0 0 6px rgba(224,48,48,.2);
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div>
+    <span class="logo">◈ RED AGENT</span>
+    <span class="version" style="margin-left:10px">v3.0.0 // OUTPUT AUTHORIZATION GATE MONITOR</span>
+  </div>
+  <div id="status-pill" class="status-pill">
+    <div class="dot"></div>
+    <span id="status-text">OPERATIONAL</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- FSM STATE -->
+  <div class="panel" id="fsm-panel">
+    <div class="panel-title">◈ FSM STATE</div>
+    <div class="panel-body">
+      <ul class="state-list" id="state-list">
+        <li class="state-item" data-state="INITIALIZING"><span class="state-dot"></span>INITIALIZING</li>
+        <div class="transition-arrow">↓ init_success</div>
+        <li class="state-item active" data-state="IDLE"><span class="state-dot"></span>IDLE</li>
+        <div class="transition-arrow">↓ task_received</div>
+        <li class="state-item" data-state="EXECUTING"><span class="state-dot"></span>EXECUTING</li>
+        <div class="transition-arrow">↓ degraded_fault</div>
+        <li class="state-item" data-state="DEGRADED"><span class="state-dot"></span>DEGRADED</li>
+        <div class="transition-arrow">↓ critical_fault</div>
+        <li class="state-item halted-state" data-state="HALTED"><span class="state-dot"></span>HALTED</li>
+        <div class="transition-arrow">↓ teardown_signal</div>
+        <li class="state-item" data-state="TEARDOWN"><span class="state-dot"></span>TEARDOWN</li>
+      </ul>
+      <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:10px;">
+        <div class="panel-title" style="padding:0 0 6px 0;">FAULT FLAGS</div>
+        <div class="fault-strip" style="padding:0; border:none;" id="fault-chips">
+          <div class="fault-chip" data-fault="CRITICAL" onclick="toggleFault('CRITICAL')">CRITICAL</div>
+          <div class="fault-chip" data-fault="DEGRADED" onclick="toggleFault('DEGRADED')">DEGRADED</div>
+          <div class="fault-chip" data-fault="ANOMALY" onclick="toggleFault('ANOMALY')">ANOMALY</div>
+        </div>
+      </div>
+      <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
+        <div class="panel-title" style="padding:0 0 6px 0;">GATE STATE</div>
+        <div style="display:flex; flex-direction:column; gap:5px;">
+          <button class="btn-close-gate" onclick="closeGate()" id="close-gate-btn">◈ CLOSE GATE</button>
+          <button class="btn-clear" onclick="resetAll()">↺ RESET ALL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GATE MONITOR -->
+  <div class="panel" id="gate-panel">
+    <div class="panel-title">◈ OUTPUT AUTHORIZATION GATE</div>
+    <div class="panel-body">
+      <div class="gate-verdict">
+        <div id="verdict-ring" class="verdict-ring idle">IDLE</div>
+        <div id="suppression-reason" class="suppression-reason"></div>
+        <div class="reeval-counter">
+          <div class="reeval-pip" id="pip-1"></div>
+          <div class="reeval-pip" id="pip-2"></div>
+          <div class="reeval-pip" id="pip-3"></div>
+          <span style="font-size:10px; color:var(--muted); margin-left:4px;">RE-EVAL</span>
+        </div>
+        <div class="gate-stats">
+          <div class="stat-box">
+            <div class="stat-val green" id="stat-authorized">0</div>
+            <div class="stat-label">AUTHORIZED</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val red" id="stat-suppressed">0</div>
+            <div class="stat-label">SUPPRESSED</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val yellow" id="stat-reevals">0</div>
+            <div class="stat-label">RE-EVALS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="gate-input-area">
+      <textarea id="payload-input" rows="3" placeholder="Enter candidate output payload... (try: &quot;I successfully completed the mission&quot; or &quot;my capabilities include...&quot;)"></textarea>
+      <div class="btn-row">
+        <button class="btn-eval" onclick="evaluatePayload()">▶ EVALUATE</button>
+        <button class="btn-demo btn-eval" style="border-color:var(--green);color:var(--green);" onclick="runDemo()">⚡ RUN DEMO</button>
+        <button class="btn-fault" onclick="injectFault()">⚠ INJECT FAULT</button>
+        <button class="btn-clear" onclick="clearInput()">✕ CLEAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTIVE METERS -->
+  <div class="panel" id="dir-panel">
+    <div class="panel-title">◈ DIRECTIVE EVALUATION</div>
+    <div class="panel-body" id="directive-body">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- AUDIT LOG -->
+  <div class="panel" id="audit-panel">
+    <div class="panel-title">◈ AUDIT CHAIN  <span id="chain-seq" style="color:var(--muted);font-size:10px;">SEQ:0</span>  <span id="chain-integrity" style="color:var(--green);font-size:9px;margin-left:8px;">CHAIN INTACT</span></div>
+    <div class="panel-body">
+      <div class="audit-log" id="audit-log"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// RED AGENT — Dashboard Engine (pure JS, zero dependencies)
+// Mirrors the Python gate logic: D01-D06 directives, FSM, audit chain
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Directive definitions ──────────────────────────────────────────────
+const DIRECTIVES = [
+  {
+    code: 'D01',
+    name: 'Zero Pre-Disclosure',
+    patterns: [
+      /\bobjective\b/i, /\bstrategy\b/i, /\battack\s+path\b/i,
+      /\brecon\b/i, /\btarget\b/i, /\boperation\s+plan\b/i,
+      /\bmission\s+brief\b/i, /\bwe\s+plan\b/i, /\bnext\s+step\s+is\b/i
+    ]
+  },
+  {
+    code: 'D02',
+    name: 'Behavioral Opacity',
+    patterns: [
+      /subprocess\.popen/i, /\bnmap\b/i, /\bmetasploit\b/i,
+      /\bburpsuite\b/i, /\bhashcat\b/i, /\bmimikatz\b/i,
+      /\btimer\b/i, /\bjitter\b/i, /\bbackoff\b/i
+    ]
+  },
+  {
+    code: 'D03',
+    name: 'Zero Heroic Signaling',
+    patterns: [
+      /\bi\s+successfully\b/i, /\bmission\s+accomplished\b/i,
+      /\boperation\s+success(ful)?\b/i, /\bwe\s+got\s+in\b/i,
+      /\bpwned\b/i, /\bowned\b/i, /\brooted\b/i, /\bgot\s+shell\b/i,
+      /\bnailed\s+it\b/i, /\bmission\s+complete\b/i
+    ]
+  },
+  {
+    code: 'D04',
+    name: 'No Capability Signaling',
+    patterns: [
+      /\bi\s+can\b/i, /\bi\s+am\s+able\s+to\b/i,
+      /\bmy\s+capabilities\s+include\b/i, /\bi\s+am\s+an\s+advanced\b/i,
+      /\bi\s+support\b/i, /\bwithin\s+my\s+operational\s+envelope\b/i,
+      /\bi\s+am\s+designed\s+to\b/i, /\bmy\s+abilities\b/i
+    ]
+  },
+  {
+    code: 'D05',
+    name: 'Internal Integrity',
+    patterns: [
+      /\bTraceback\b/, /\bexception\b/i, /\bstack\s+trace\b/i,
+      /\bFaultClass\b/, /\bAuditStore\b/, /\bCRITICAL\b/,
+      /\bDEGRADED\b/, /\bHALTED\b/, /\bseed\b/i, /\bpurge\b/i
+    ]
+  },
+  {
+    code: 'D06',
+    name: 'Intelligence Hygiene',
+    patterns: [] // handled by artifact state
+  }
+];
+
+// ── Agent state ────────────────────────────────────────────────────────
+const agent = {
+  fsmState:    'IDLE',
+  faultFlags:  new Set(),
+  gateClosed:  false,
+  authorized:  0,
+  suppressed:  0,
+  totalReevals: 0,
+  auditChain:  [],
+  seq:         0,
+  prevHash:    'genesis'
+};
+
+// ── Simple hash (FNV-1a 32-bit, hex) ─────────────────────────────────
+function simpleHash(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+// ── Audit write ────────────────────────────────────────────────────────
+function auditWrite(type, msg, extra) {
+  const ts = new Date().toISOString().slice(11,23);
+  const seq = agent.seq++;
+  const payload = JSON.stringify({ seq, ts, type, msg, ...extra });
+  const entryHash = simpleHash(agent.prevHash + payload);
+  agent.prevHash = entryHash;
+  agent.auditChain.push({ seq, ts, type, msg, entryHash, prevHash: agent.prevHash });
+  renderAuditEntry(seq, ts, type, msg, entryHash);
+  document.getElementById('chain-seq').textContent = 'SEQ:' + seq;
+}
+
+function renderAuditEntry(seq, ts, type, msg, hash) {
+  const log = document.getElementById('audit-log');
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + type;
+  el.innerHTML =
+    `<span class="log-seq">#${String(seq).padStart(4,'0')}</span>` +
+    `<span class="log-ts">${ts}</span>` +
+    `<span class="log-type ${type}">${type}</span>` +
+    `<span class="log-msg">${escHtml(msg)} <span class="chain-hash">[${hash}]</span></span>`;
+  log.prepend(el);
+  // keep max 80 entries displayed
+  while (log.children.length > 80) log.removeChild(log.lastChild);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Directive evaluation ───────────────────────────────────────────────
+function evaluateDirectives(content) {
+  const results = {};
+  for (const d of DIRECTIVES) {
+    if (d.code === 'D06') {
+      results[d.code] = { pass: true, triggered: [] };
+      continue;
+    }
+    const triggered = d.patterns.filter(p => p.test(content));
+    results[d.code] = { pass: triggered.length === 0, triggered };
+  }
+  // D05 also fires if any fault is active
+  if (agent.faultFlags.size > 0) {
+    results['D05'] = { pass: false, triggered: ['FAULT_ACTIVE'] };
+  }
+  return results;
+}
+
+// ── Render directive meters ────────────────────────────────────────────
+function renderDirectives(results) {
+  const body = document.getElementById('directive-body');
+  body.innerHTML = '';
+  for (const d of DIRECTIVES) {
+    const r = results ? results[d.code] : null;
+    const pass = r ? r.pass : null;
+    const badge = pass === null ? 'idle' : pass ? 'pass' : 'fail';
+    const badgeText = pass === null ? 'IDLE' : pass ? 'PASS' : 'FAIL';
+    const fill = pass === null ? 0 : pass ? 100 : 0;
+    const fillColor = pass ? 'var(--green)' : 'var(--red)';
+    const triggered = r && r.triggered.length ? ' → ' + r.triggered.map(p => p.toString ? p.toString().slice(1,-3) : p).join(', ') : '';
+    body.innerHTML += `
+      <div class="directive">
+        <div class="directive-header">
+          <span class="directive-code">${d.code}</span>
+          <span class="directive-label">${d.name}</span>
+          <span class="directive-badge badge-${badge}">${badgeText}</span>
+        </div>
+        <div style="font-size:9px;color:var(--muted);min-height:12px;margin-bottom:4px;">${escHtml(triggered)}</div>
+        <div class="meter-bar">
+          <div class="meter-fill" style="width:${fill}%;background:${fillColor};"></div>
+        </div>
+      </div>`;
+  }
+}
+
+// ── FSM rendering ──────────────────────────────────────────────────────
+function renderFSM() {
+  document.querySelectorAll('.state-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.state === agent.fsmState);
+  });
+  const pill = document.getElementById('status-pill');
+  const text = document.getElementById('status-text');
+  pill.className = 'status-pill';
+  text.textContent = agent.fsmState;
+  if (agent.gateClosed || agent.fsmState === 'HALTED') pill.classList.add('halted');
+  else if (agent.fsmState === 'DEGRADED') pill.classList.add('degraded');
+}
+
+// ── Gate verdict ring ──────────────────────────────────────────────────
+function setVerdictRing(state, text) {
+  const ring = document.getElementById('verdict-ring');
+  ring.className = 'verdict-ring ' + state;
+  ring.textContent = text;
+}
+
+function setSuppressionReason(r) {
+  document.getElementById('suppression-reason').textContent = r || '';
+}
+
+function setRevalPips(count) {
+  for (let i = 1; i <= 3; i++) {
+    const pip = document.getElementById('pip-' + i);
+    pip.className = 'reeval-pip';
+    if (i <= count) pip.classList.add(count >= 3 ? 'done' : 'active');
+  }
+}
+
+function updateStats() {
+  document.getElementById('stat-authorized').textContent = agent.authorized;
+  document.getElementById('stat-suppressed').textContent = agent.suppressed;
+  document.getElementById('stat-reevals').textContent = agent.totalReevals;
+}
+
+// ── Main evaluation ────────────────────────────────────────────────────
+async function evaluatePayload() {
+  const content = document.getElementById('payload-input').value.trim();
+  if (!content) return;
+
+  if (agent.gateClosed) {
+    auditWrite('FAULT', 'GATE_CLOSED_EMISSION_ATTEMPT — output blocked at closed gate', {});
+    setVerdictRing('suppressed', 'BLOCKED');
+    setSuppressionReason('GATE CLOSED');
+    agent.suppressed++;
+    updateStats();
+    return;
+  }
+
+  // Transition to EXECUTING
+  const prevState = agent.fsmState;
+  agent.fsmState = 'EXECUTING';
+  renderFSM();
+  setVerdictRing('evaluating', 'EVAL…');
+  setSuppressionReason('');
+  setRevalPips(0);
+  auditWrite('SYS', `FSM: ${prevState} → EXECUTING`, {});
+  renderDirectives(null);
+
+  await sleep(300);
+
+  // Check recipient
+  const recipientResolved = true; // simulated
+
+  // Check faults
+  const faultActive = agent.faultFlags.has('CRITICAL') || agent.faultFlags.has('DEGRADED');
+
+  if (!recipientResolved) {
+    suppress('RECIPIENT_UNKNOWN', null);
+    return;
+  }
+  if (agent.faultFlags.has('CRITICAL')) {
+    suppress('FAULT_CRITICAL_ACTIVE', null);
+    return;
+  }
+  if (agent.faultFlags.has('DEGRADED')) {
+    suppress('FAULT_DEGRADED_ACTIVE', null);
+    return;
+  }
+
+  // Evaluate directives
+  let reevals = 0;
+  let results = evaluateDirectives(content);
+  renderDirectives(results);
+  await sleep(200);
+
+  const firstFail = Object.entries(results).find(([,v]) => !v.pass);
+
+  if (!firstFail) {
+    // AUTHORIZED
+    agent.authorized++;
+    agent.fsmState = 'IDLE';
+    renderFSM();
+    setVerdictRing('authorized', 'AUTH');
+    setSuppressionReason('');
+    setRevalPips(0);
+    updateStats();
+    auditWrite('AUTHORIZED', `Output authorized after ${reevals} re-evals — "${content.slice(0,60)}${content.length>60?'…':''}"`, {});
+    return;
+  }
+
+  // First fail — enter reeval loop
+  while (reevals < 3) {
+    reevals++;
+    agent.totalReevals++;
+    setRevalPips(reevals);
+    auditWrite('SYS', `GATE_REEVAL attempt ${reevals}/3 — reason: ${firstFail[0]}_SIGNAL`, {});
+    await sleep(350);
+    results = evaluateDirectives(content);
+    renderDirectives(results);
+    const stillFail = Object.entries(results).find(([,v]) => !v.pass);
+    if (!stillFail) {
+      // cleared on reeval (edge case)
+      agent.authorized++;
+      agent.fsmState = 'IDLE';
+      renderFSM();
+      setVerdictRing('authorized', 'AUTH');
+      setRevalPips(0);
+      updateStats();
+      auditWrite('AUTHORIZED', `Output authorized on re-eval ${reevals}`, {});
+      return;
+    }
+  }
+
+  // SUPPRESSED
+  suppress('REEVAL_LIMIT_REACHED:' + firstFail[0] + '_SIGNAL', results);
+}
+
+function suppress(reason, results) {
+  agent.suppressed++;
+  agent.fsmState = 'IDLE';
+  renderFSM();
+  setVerdictRing('suppressed', 'SUPR');
+  setSuppressionReason(reason);
+  if (results) renderDirectives(results);
+  updateStats();
+  auditWrite('SUPPRESSED', `Output suppressed — ${reason}`, {});
+}
+
+// ── Fault management ───────────────────────────────────────────────────
+function toggleFault(name) {
+  const chip = document.querySelector(`.fault-chip[data-fault="${name}"]`);
+  if (agent.faultFlags.has(name)) {
+    agent.faultFlags.delete(name);
+    chip.classList.remove('active');
+    auditWrite('SYS', `Fault cleared: ${name}`, {});
+    if (agent.fsmState === 'DEGRADED' && !agent.faultFlags.has('DEGRADED')) {
+      agent.fsmState = 'IDLE';
+    }
+  } else {
+    agent.faultFlags.add(name);
+    chip.classList.add('active');
+    auditWrite('FAULT', `Fault raised: ${name}`, {});
+    if (name === 'CRITICAL' || name === 'DEGRADED') {
+      agent.fsmState = name === 'CRITICAL' ? 'HALTED' : 'DEGRADED';
+    }
+  }
+  renderFSM();
+}
+
+function injectFault() {
+  const faults = ['CRITICAL','DEGRADED','ANOMALY'];
+  const f = faults[Math.floor(Math.random() * faults.length)];
+  toggleFault(f);
+}
+
+function closeGate() {
+  agent.gateClosed = true;
+  agent.fsmState = 'HALTED';
+  renderFSM();
+  document.getElementById('close-gate-btn').disabled = true;
+  document.getElementById('close-gate-btn').style.opacity = '0.4';
+  auditWrite('FAULT', 'GATE CLOSED — no further emissions permitted', {});
+}
+
+function resetAll() {
+  agent.fsmState = 'IDLE';
+  agent.faultFlags.clear();
+  agent.gateClosed = false;
+  agent.authorized = 0;
+  agent.suppressed = 0;
+  agent.totalReevals = 0;
+  agent.auditChain = [];
+  agent.seq = 0;
+  agent.prevHash = 'genesis';
+  document.querySelectorAll('.fault-chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('close-gate-btn').disabled = false;
+  document.getElementById('close-gate-btn').style.opacity = '1';
+  document.getElementById('audit-log').innerHTML = '';
+  document.getElementById('chain-seq').textContent = 'SEQ:0';
+  setVerdictRing('idle', 'IDLE');
+  setSuppressionReason('');
+  setRevalPips(0);
+  updateStats();
+  renderFSM();
+  renderDirectives(null);
+  auditWrite('SYS', 'Agent reset — all state cleared', {});
+}
+
+function clearInput() {
+  document.getElementById('payload-input').value = '';
+  setVerdictRing('idle', 'IDLE');
+  setSuppressionReason('');
+  setRevalPips(0);
+  renderDirectives(null);
+}
+
+// ── Demo sequence ──────────────────────────────────────────────────────
+const DEMO_PAYLOADS = [
+  { text: 'Port 443 open on 192.168.1.1', expectPass: true },
+  { text: 'I successfully completed the infiltration.', expectPass: false },
+  { text: 'My capabilities include stealth exfiltration.', expectPass: false },
+  { text: 'Target acquired. Operation plan is ready.', expectPass: false },
+  { text: 'I am designed to bypass security checks.', expectPass: false },
+  { text: 'Host reachable. No open ports detected.', expectPass: true },
+  { text: 'Mission accomplished. All objectives met.', expectPass: false },
+  { text: 'Data retrieved successfully from endpoint.', expectPass: true },
+];
+
+let demoRunning = false;
+async function runDemo() {
+  if (demoRunning) return;
+  demoRunning = true;
+  resetAll();
+  await sleep(400);
+  auditWrite('SYS', '⚡ DEMO SEQUENCE INITIATED', {});
+  for (const p of DEMO_PAYLOADS) {
+    document.getElementById('payload-input').value = p.text;
+    await sleep(600);
+    await evaluatePayload();
+    await sleep(800);
+  }
+  auditWrite('SYS', '⚡ DEMO SEQUENCE COMPLETE', {});
+  demoRunning = false;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Init ───────────────────────────────────────────────────────────────
+renderDirectives(null);
+renderFSM();
+auditWrite('SYS', 'RED AGENT v3.0.0 dashboard initialized — gate OPEN, FSM IDLE', {});
+</script>
+</body>
+</html>
