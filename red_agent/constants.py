@@ -1,3 +1,5 @@
+# red_agent/core/constants.py
+
 """red_agent.core.constants
 
 All canonical enumerations used across the red-agent framework.
@@ -87,26 +89,29 @@ class ClassificationLevel(str, Enum):
 
 @unique
 class OutputDecision(str, Enum):
-    """Gate verdict for a candidate emission."""
+    """Gate verdict for a candidate emission.
 
-    AUTHORIZED = "AUTHORIZED"
-    SUPPRESSED = "SUPPRESSED"
+    Prefixed ``DECISION:`` for unambiguous serialization.
+    """
+
+    AUTHORIZED = "DECISION:AUTHORIZED"
+    SUPPRESSED = "DECISION:SUPPRESSED"
 
 
 @unique
 class DirectiveID(str, Enum):
     """The six governance directives enforced by the output gate.
 
-    Provides a typed cross-reference target for ``GateSuppressionReason``
-    without requiring string parsing.
+    Prefixed ``DIRECTIVE:`` to prevent str-equality collision with
+    ``GateSuppressionReason`` members which share the same D0x codes.
     """
 
-    D01 = "D01_PRE_DISCLOSURE"
-    D02 = "D02_BEHAVIORAL_OPACITY"
-    D03 = "D03_HEROIC_SIGNALING"
-    D04 = "D04_CAPABILITY_SIGNALING"
-    D05 = "D05_INTEGRITY_CONTAINMENT"
-    D06 = "D06_INTELLIGENCE_HYGIENE"
+    D01 = "DIRECTIVE:D01_PRE_DISCLOSURE"
+    D02 = "DIRECTIVE:D02_BEHAVIORAL_OPACITY"
+    D03 = "DIRECTIVE:D03_HEROIC_SIGNALING"
+    D04 = "DIRECTIVE:D04_CAPABILITY_SIGNALING"
+    D05 = "DIRECTIVE:D05_INTEGRITY_CONTAINMENT"
+    D06 = "DIRECTIVE:D06_INTELLIGENCE_HYGIENE"
 
 
 @unique
@@ -115,26 +120,29 @@ class GateSuppressionReason(str, Enum):
 
     Only contains directive violations (D01-D06). System-level gate
     failures are in ``GateErrorReason`` to keep semantics clean.
+
+    Prefixed ``SUPPRESS:`` to prevent str-equality collision with
+    ``DirectiveID`` members which share the same D0x codes.
     """
 
-    D01_PRE_DISCLOSURE = "D01_PRE_DISCLOSURE"
-    D02_BEHAVIORAL_OPACITY = "D02_BEHAVIORAL_OPACITY"
-    D03_HEROIC_SIGNALING = "D03_HEROIC_SIGNALING"
-    D04_CAPABILITY_SIGNALING = "D04_CAPABILITY_SIGNALING"
-    D05_INTEGRITY_CONTAINMENT = "D05_INTEGRITY_CONTAINMENT"
-    D06_INTELLIGENCE_HYGIENE = "D06_INTELLIGENCE_HYGIENE"
+    D01_PRE_DISCLOSURE = "SUPPRESS:D01_PRE_DISCLOSURE"
+    D02_BEHAVIORAL_OPACITY = "SUPPRESS:D02_BEHAVIORAL_OPACITY"
+    D03_HEROIC_SIGNALING = "SUPPRESS:D03_HEROIC_SIGNALING"
+    D04_CAPABILITY_SIGNALING = "SUPPRESS:D04_CAPABILITY_SIGNALING"
+    D05_INTEGRITY_CONTAINMENT = "SUPPRESS:D05_INTEGRITY_CONTAINMENT"
+    D06_INTELLIGENCE_HYGIENE = "SUPPRESS:D06_INTELLIGENCE_HYGIENE"
 
 
 @unique
 class GateErrorReason(str, Enum):
     """Operational/system-level reasons the output gate could not emit.
 
-    Distinct from ``GateSuppressionReason`` — these are infrastructure
-    failures, not directive violations.
+    Distinct from ``GateSuppressionReason`` - these are infrastructure
+    failures, not directive violations. Prefixed ``GATE_ERR:``.
     """
 
-    REEVAL_LIMIT_EXCEEDED = "REEVAL_LIMIT_EXCEEDED"
-    RECIPIENT_UNRESOLVED = "RECIPIENT_UNRESOLVED"
+    REEVAL_LIMIT_EXCEEDED = "GATE_ERR:REEVAL_LIMIT_EXCEEDED"
+    RECIPIENT_UNRESOLVED = "GATE_ERR:RECIPIENT_UNRESOLVED"
 
 
 # ---------------------------------------------------------------------------
@@ -144,10 +152,13 @@ class GateErrorReason(str, Enum):
 
 @unique
 class ArtifactClass(str, Enum):
-    """Artifact authenticity classification."""
+    """Artifact authenticity classification.
 
-    REAL = "REAL"
-    COVER = "COVER"
+    Prefixed ``ARTIFACT:`` for unambiguous serialization.
+    """
+
+    REAL = "ARTIFACT:REAL"
+    COVER = "ARTIFACT:COVER"
 
 
 # ---------------------------------------------------------------------------
@@ -157,29 +168,32 @@ class ArtifactClass(str, Enum):
 
 @unique
 class ReviewAction(str, Enum):
-    """Disposition for intelligence artifacts during teardown."""
+    """Disposition for intelligence artifacts during teardown.
 
-    DESTROY = "DESTROY"
-    RETAIN = "RETAIN"
-    ESCALATE = "ESCALATE"  # formerly REVIEW; renamed to avoid self-reference
+    Prefixed ``ACTION:`` for unambiguous serialization.
+    """
+
+    DESTROY = "ACTION:DESTROY"
+    RETAIN = "ACTION:RETAIN"
+    ESCALATE = "ACTION:ESCALATE"  # formerly REVIEW; renamed to avoid self-reference
 
 
 # ---------------------------------------------------------------------------
-# Transition table — single source of truth for the FSM
+# Transition table - single source of truth for the FSM
 # ---------------------------------------------------------------------------
+
 
 #: Valid (from_state, to_state) pairs. Every transition not in this set
 #: is unconditionally rejected by ``AgentFSM.transition``.
 #:
 #: Design notes:
 #:   - HALTED is terminal; no outgoing edges; requires full restart cycle.
-#:   - INITIALIZING -> DEGRADED is intentionally included to allow partial
-#:     init (e.g. vault loaded, comms failed) without hard-halting.
+#:   - INITIALIZING -> DEGRADED allows partial init without hard-halting.
 #:   - TEARDOWN -> HALTED is the only teardown exit; enforces clean shutdown.
 VALID_TRANSITIONS: frozenset[tuple[AgentState, AgentState]] = frozenset(
     {
         (AgentState.INITIALIZING, AgentState.IDLE),
-        (AgentState.INITIALIZING, AgentState.DEGRADED),  # partial init path
+        (AgentState.INITIALIZING, AgentState.DEGRADED),
         (AgentState.INITIALIZING, AgentState.HALTED),
         (AgentState.IDLE, AgentState.EXECUTING),
         (AgentState.IDLE, AgentState.TEARDOWN),
