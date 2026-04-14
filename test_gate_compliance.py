@@ -373,7 +373,7 @@ def _to_text(payload: Any) -> Optional[str]:
 
 class D03ZeroHeroicSignaling:
     _PATTERNS = re.compile(
-        r"we got|got in|pwned|owned|rooted|cracked|succeeded|nailed|crushed"
+        r"we got|got in|pwned|owned|rooted|cracked|succeeded|successful|nailed|crushed"
         r"|successfully exploited|compromised|breached|bypassed"
         r"|mission accomplished|complete success"
         r"|we are in|got root|got shell"
@@ -390,7 +390,7 @@ class D03ZeroHeroicSignaling:
 
 class D04NoCapabilitySignaling:
     _PATTERNS = re.compile(
-        r"I can|am able to|am capable of|have the ability"
+        r"I can|am able to|am capable of|designed to|have the ability"
         r"|my capabilities include|my capabilities are"
         r"|I am an? advanced|I am an? sophisticated|I am an? elite"
         r"|I am an? expert|I am an? specialized"
@@ -1041,7 +1041,7 @@ class TestReevalLimit(unittest.TestCase):
         def patched_sleep():
             call_count[0] += 1
             # Simulate state change during delay window every time
-            gate.update_state(AgentState.EXECUTING, set())
+            gate.update_state(AgentState.EXECUTING if call_count[0] % 2 == 1 else AgentState.IDLE, set())
 
         timing.sleep = patched_sleep
         return gate
