@@ -3,7 +3,6 @@
 Minimum scored entropy: 128 bits.
 Adversary-controllable sources contribute 0 credited bits.
 """
-
 from __future__ import annotations
 
 import hashlib
@@ -53,7 +52,7 @@ def _memory_pressure() -> tuple[bytes, int]:
         return b"\x00" * 20, 0
 
 
-# ── Public API ────────────────────────────────────────────────────────────────────────────
+# ── Public API ────────────────────────────────────────────────────────────────────────
 def generate_seed(task_queue_depth: int = 0) -> bytes:
     """Aggregate ambient entropy and return a 32-byte conditioned seed.
 
