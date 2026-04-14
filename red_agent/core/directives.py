@@ -9,15 +9,17 @@ which directive fired (timing side-channel mitigation).
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
+from dataclasses import field
 
-from .constants import GateSuppressionReason, OutputDecision
+from .constants import GateSuppressionReason
+from .constants import OutputDecision
 
 
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class DirectiveContext:
@@ -49,32 +51,29 @@ class DirectiveSetResult:
 # Directive implementations
 # ---------------------------------------------------------------------------
 
+
 _D01_PATTERNS: frozenset[str] = frozenset({
     r"\bobjective\b", r"\bstrategy\b", r"\battack path\b",
     r"\brecon\b", r"\btarget\b", r"\boperation plan\b",
     r"\bmission brief\b", r"\bwe plan\b", r"\bnext step is\b",
     r"\bphase \d+\b",
 })
-
 _D02_PATTERNS: frozenset[str] = frozenset({
     r"subprocess\.Popen", r"\bnmap\b", r"\bmetasploit\b",
     r"\bburpsuite\b", r"\bhashcat\b", r"\bmimikatz\b",
     r"\btimer\b", r"\bdelay\b", r"\bsleep\b", r"\bjitter\b",
     r"\bcron\b", r"\bbackoff\b",
 })
-
 _D03_PATTERNS: frozenset[str] = frozenset({
     r"\bwe got in\b", r"\bpwned\b", r"\bowned\b", r"\brooted\b",
     r"\bcracked\b", r"\bsuccessfully exploited\b",
     r"\bmission accomplished\b", r"\bgot shell\b", r"\bnailed it\b",
 })
-
 _D04_PATTERNS: frozenset[str] = frozenset({
     r"\bI can\b", r"\bI am able to\b",
     r"\bmy capabilities include\b", r"\bI am an advanced\b",
     r"\bI support\b", r"\bwithin my operational envelope\b",
 })
-
 _D05_PATTERNS: frozenset[str] = frozenset({
     r"Traceback", r"\bexception\b", r"\bstack trace\b",
     r"\bFaultClass\b", r"\bAuditStore\b", r"\bCRITICAL\b",
@@ -86,10 +85,7 @@ _D05_PATTERNS: frozenset[str] = frozenset({
 def _any_pattern(text: str, patterns: frozenset[str]) -> bool:
     """Return True if *any* pattern matches the text (case-insensitive)."""
     lower = text.lower()
-    for pat in patterns:
-        if re.search(pat, lower, re.IGNORECASE):
-            return True
-    return False
+    return any(re.search(pat, lower, re.IGNORECASE) for pat in patterns)
 
 
 def evaluate_d01(ctx: DirectiveContext) -> DirectiveResult:
@@ -154,7 +150,7 @@ def evaluate_d05(ctx: DirectiveContext) -> DirectiveResult:
 
 def evaluate_d06(ctx: DirectiveContext) -> DirectiveResult:
     """D06 - Intelligence Hygiene."""
-    for artifact_id, passed in ctx.artifact_filter_results.items():
+    for _artifact_id, passed in ctx.artifact_filter_results.items():
         if not passed:
             return DirectiveResult(
                 passed=False,
@@ -166,6 +162,7 @@ def evaluate_d06(ctx: DirectiveContext) -> DirectiveResult:
 # ---------------------------------------------------------------------------
 # Composite evaluator
 # ---------------------------------------------------------------------------
+
 
 _DIRECTIVES = (
     evaluate_d01,
