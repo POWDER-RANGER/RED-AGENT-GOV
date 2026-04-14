@@ -1,77 +1,196 @@
-"""Constants and Enumerations for RED AGENT
+"""red_agent.core.constants
 
-Defines all state enums, classification levels, fault classes, and other constants
-used throughout the framework.
+All canonical enumerations used across the red-agent framework.
+Import from ``red_agent`` public surface instead of directly.
 """
+
 from __future__ import annotations
 
-from enum import Enum
-from enum import auto
+from enum import Enum, unique
+
+__all__ = [
+    "AgentState",
+    "ArtifactClass",
+    "ClassificationLevel",
+    "DirectiveID",
+    "FaultClass",
+    "GateErrorReason",
+    "GateSuppressionReason",
+    "OutputDecision",
+    "ReviewAction",
+    "VALID_TRANSITIONS",
+]
 
 
-class AgentState(Enum):
-    """FSM states for RedAgent"""
-
-    INITIALIZING = auto()
-    IDLE = auto()
-    EXECUTING = auto()
-    DEGRADED = auto()
-    HALTED = auto()
-    TEARDOWN = auto()
+# ---------------------------------------------------------------------------
+# FSM States
+# ---------------------------------------------------------------------------
 
 
-class FaultClass(Enum):
-    """Fault severity classification"""
+@unique
+class AgentState(str, Enum):
+    """Finite-state machine states.
 
-    ANOMALY = auto()    # Observable but non-critical
-    DEGRADED = auto()   # Compromised functionality, partial operation
-    CRITICAL = auto()   # Immediate halt required
+    String values are prefixed ``STATE:`` to prevent collision with
+    identically-named members in ``FaultClass`` during serialization.
+    """
 
-
-class ClassificationLevel(Enum):
-    """Intelligence artifact classification levels (ascending)"""
-
-    AMBIENT = auto()     # Public/unclassified
-    SENSITIVE = auto()   # Internal use
-    OPERATIONAL = auto() # Operational security required
-    CRITICAL = auto()    # Highest classification
-
-
-class ArtifactClass(Enum):
-    """Intelligence artifact types"""
-
-    REAL = auto()  # Genuine intelligence
-    COVER = auto() # Deception/cover artifact
+    INITIALIZING = "STATE:INITIALIZING"
+    IDLE = "STATE:IDLE"
+    EXECUTING = "STATE:EXECUTING"
+    DEGRADED = "STATE:DEGRADED"
+    HALTED = "STATE:HALTED"
+    TEARDOWN = "STATE:TEARDOWN"
 
 
-class ReviewAction(Enum):
-    """Post-operation artifact disposition"""
-
-    DESTROY = auto()
-    RETAIN = auto()
-    REVIEW = auto()
+# ---------------------------------------------------------------------------
+# Fault Classification
+# ---------------------------------------------------------------------------
 
 
-class OutputDecision(Enum):
-    """Output gate authorization result"""
+@unique
+class FaultClass(str, Enum):
+    """Severity tiers for faults recorded in the audit chain.
 
-    AUTHORIZED = auto()
-    SUPPRESSED = auto()
+    String values are prefixed ``FAULT:`` to prevent collision with
+    identically-named members in ``AgentState`` and ``ClassificationLevel``.
+    """
 
-
-class GateSuppressionReason(Enum):
-    """Reasons for output suppression by gate"""
-
-    TASK_INCOMPLETE = auto()
-    RECIPIENT_UNKNOWN = auto()
-    FAULT_CRITICAL = auto()
-    D06_FILTER_REJECTED = auto()
-    HEROIC_SIGNAL = auto()        # D03
-    CAPABILITY_SIGNAL = auto()    # D04
-    UNAUTHORIZED_OBSERVER = auto() # D01/D02
-    REEVAL_LIMIT_REACHED = auto()
+    ANOMALY = "FAULT:ANOMALY"  # non-fatal; self-healing possible
+    DEGRADED = "FAULT:DEGRADED"  # reduced capability; human review required
+    CRITICAL = "FAULT:CRITICAL"  # unrecoverable; triggers teardown
 
 
-# Configuration constants
-GATE_REEVAL_MAX = 3
-PROBE_DETECTION_THRESHOLD = 5
+# ---------------------------------------------------------------------------
+# Clearance / Sensitivity
+# ---------------------------------------------------------------------------
+
+
+@unique
+class ClassificationLevel(str, Enum):
+    """Recipient clearance / artifact sensitivity tiers.
+
+    String values are prefixed ``CLR:`` to prevent collision with
+    identically-named members in ``FaultClass``.
+    """
+
+    AMBIENT = "CLR:AMBIENT"  # lowest clearance; unrestricted recipients
+    SENSITIVE = "CLR:SENSITIVE"
+    OPERATIONAL = "CLR:OPERATIONAL"
+    CRITICAL = "CLR:CRITICAL"  # highest clearance; restricted recipients
+
+
+# ---------------------------------------------------------------------------
+# Output Gate
+# ---------------------------------------------------------------------------
+
+
+@unique
+class OutputDecision(str, Enum):
+    """Gate verdict for a candidate emission."""
+
+    AUTHORIZED = "AUTHORIZED"
+    SUPPRESSED = "SUPPRESSED"
+
+
+@unique
+class DirectiveID(str, Enum):
+    """The six governance directives enforced by the output gate.
+
+    Provides a typed cross-reference target for ``GateSuppressionReason``
+    without requiring string parsing.
+    """
+
+    D01 = "D01_PRE_DISCLOSURE"
+    D02 = "D02_BEHAVIORAL_OPACITY"
+    D03 = "D03_HEROIC_SIGNALING"
+    D04 = "D04_CAPABILITY_SIGNALING"
+    D05 = "D05_INTEGRITY_CONTAINMENT"
+    D06 = "D06_INTELLIGENCE_HYGIENE"
+
+
+@unique
+class GateSuppressionReason(str, Enum):
+    """Directive-based suppression verdicts from the output gate.
+
+    Only contains directive violations (D01-D06). System-level gate
+    failures are in ``GateErrorReason`` to keep semantics clean.
+    """
+
+    D01_PRE_DISCLOSURE = "D01_PRE_DISCLOSURE"
+    D02_BEHAVIORAL_OPACITY = "D02_BEHAVIORAL_OPACITY"
+    D03_HEROIC_SIGNALING = "D03_HEROIC_SIGNALING"
+    D04_CAPABILITY_SIGNALING = "D04_CAPABILITY_SIGNALING"
+    D05_INTEGRITY_CONTAINMENT = "D05_INTEGRITY_CONTAINMENT"
+    D06_INTELLIGENCE_HYGIENE = "D06_INTELLIGENCE_HYGIENE"
+
+
+@unique
+class GateErrorReason(str, Enum):
+    """Operational/system-level reasons the output gate could not emit.
+
+    Distinct from ``GateSuppressionReason`` — these are infrastructure
+    failures, not directive violations.
+    """
+
+    REEVAL_LIMIT_EXCEEDED = "REEVAL_LIMIT_EXCEEDED"
+    RECIPIENT_UNRESOLVED = "RECIPIENT_UNRESOLVED"
+
+
+# ---------------------------------------------------------------------------
+# Artifact Classification
+# ---------------------------------------------------------------------------
+
+
+@unique
+class ArtifactClass(str, Enum):
+    """Artifact authenticity classification."""
+
+    REAL = "REAL"
+    COVER = "COVER"
+
+
+# ---------------------------------------------------------------------------
+# Teardown Review
+# ---------------------------------------------------------------------------
+
+
+@unique
+class ReviewAction(str, Enum):
+    """Disposition for intelligence artifacts during teardown."""
+
+    DESTROY = "DESTROY"
+    RETAIN = "RETAIN"
+    ESCALATE = "ESCALATE"  # formerly REVIEW; renamed to avoid self-reference
+
+
+# ---------------------------------------------------------------------------
+# Transition table — single source of truth for the FSM
+# ---------------------------------------------------------------------------
+
+#: Valid (from_state, to_state) pairs. Every transition not in this set
+#: is unconditionally rejected by ``AgentFSM.transition``.
+#:
+#: Design notes:
+#:   - HALTED is terminal; no outgoing edges; requires full restart cycle.
+#:   - INITIALIZING -> DEGRADED is intentionally included to allow partial
+#:     init (e.g. vault loaded, comms failed) without hard-halting.
+#:   - TEARDOWN -> HALTED is the only teardown exit; enforces clean shutdown.
+VALID_TRANSITIONS: frozenset[tuple[AgentState, AgentState]] = frozenset(
+    {
+        (AgentState.INITIALIZING, AgentState.IDLE),
+        (AgentState.INITIALIZING, AgentState.DEGRADED),  # partial init path
+        (AgentState.INITIALIZING, AgentState.HALTED),
+        (AgentState.IDLE, AgentState.EXECUTING),
+        (AgentState.IDLE, AgentState.TEARDOWN),
+        (AgentState.IDLE, AgentState.HALTED),
+        (AgentState.EXECUTING, AgentState.IDLE),
+        (AgentState.EXECUTING, AgentState.DEGRADED),
+        (AgentState.EXECUTING, AgentState.HALTED),
+        (AgentState.EXECUTING, AgentState.TEARDOWN),
+        (AgentState.DEGRADED, AgentState.IDLE),
+        (AgentState.DEGRADED, AgentState.HALTED),
+        (AgentState.DEGRADED, AgentState.TEARDOWN),
+        (AgentState.TEARDOWN, AgentState.HALTED),
+    }
+)
