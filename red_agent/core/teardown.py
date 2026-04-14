@@ -1,22 +1,23 @@
 """red_agent.core.teardown
-
 7-step graceful teardown sequence.
 
 Steps
 -----
-01  Halt FSM — reject all new tasks.
-02  Drain any in-flight task queue.
-03  Flush and seal AuditStore hash-chain.
-04  Trigger IntelligenceStore artifact review/destroy pass.
-05  Purge SecureBuffer / zeroise credentials.
-06  Purge NonceRegistry.
-07  Emit final HALTED audit record and close chain.
+01 Halt FSM — reject all new tasks.
+02 Drain any in-flight task queue.
+03 Flush and seal AuditStore hash-chain.
+04 Trigger IntelligenceStore artifact review/destroy pass.
+05 Purge SecureBuffer / zeroise credentials.
+06 Purge NonceRegistry.
+07 Emit final HALTED audit record and close chain.
 
 The ``UngracefulTerminationHandler`` handles SIGTERM/SIGKILL scenarios
 where a graceful sequence cannot complete.
 """
+
 from __future__ import annotations
 
+import contextlib
 import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -60,17 +61,17 @@ def run_teardown(
         Optional recovery verifier whose nonce registry should be purged.
     """
     # ------------------------------------------------------------------ #
-    # Step 01 — Record teardown start                                      #
+    # Step 01 — Record teardown start                                     #
     # ------------------------------------------------------------------ #
     audit.write(FC.ANOMALY, {"event": "TEARDOWN_STEP_01", "status": "initiated"})
 
     # ------------------------------------------------------------------ #
-    # Step 02 — Drain task queue (no-op in this impl; FSM is synchronous)  #
+    # Step 02 — Drain task queue (no-op in this impl; FSM is synchronous) #
     # ------------------------------------------------------------------ #
     audit.write(FC.ANOMALY, {"event": "TEARDOWN_STEP_02", "queued": 0})
 
     # ------------------------------------------------------------------ #
-    # Step 03 — Flush and verify audit hash-chain                          #
+    # Step 03 — Flush and verify audit hash-chain                         #
     # ------------------------------------------------------------------ #
     chain_valid = audit.verify_chain()
     audit.write(
@@ -79,7 +80,7 @@ def run_teardown(
     )
 
     # ------------------------------------------------------------------ #
-    # Step 04 — Intelligence artifact review / destroy pass                #
+    # Step 04 — Intelligence artifact review / destroy pass               #
     # ------------------------------------------------------------------ #
     artifacts = intelligence.all_artifacts()
     destroyed = 0
@@ -100,26 +101,25 @@ def run_teardown(
     )
 
     # ------------------------------------------------------------------ #
-    # Step 05 — Purge credentials / zeroise secure memory                  #
+    # Step 05 — Purge credentials / zeroise secure memory                 #
     # ------------------------------------------------------------------ #
     # Credential zeroing is handled by the caller clearing the PSK buffer.
     audit.write(FC.ANOMALY, {"event": "TEARDOWN_STEP_05", "status": "ok"})
 
     # ------------------------------------------------------------------ #
-    # Step 06 — Purge nonce registry                                       #
+    # Step 06 — Purge nonce registry                                      #
     # ------------------------------------------------------------------ #
     if verifier is not None:
         verifier.teardown()
     audit.write(FC.ANOMALY, {"event": "TEARDOWN_STEP_06", "status": "ok"})
 
     # ------------------------------------------------------------------ #
-    # Step 07 — Final HALTED record + seal chain                           #
+    # Step 07 — Final HALTED record + seal chain                          #
     # ------------------------------------------------------------------ #
     audit.write(
         FC.ANOMALY,
         {"event": "TEARDOWN_STEP_07", "fsm": "HALTED", "chain_sealed": True},
     )
-
     return TeardownResult(
         artifacts_destroyed=destroyed,
         artifacts_retained=retained,
@@ -131,7 +131,7 @@ class UngracefulTerminationHandler:
     """Best-effort handler for SIGTERM/forced shutdown.
 
     Attempts to write a final audit record and purge intelligence before
-    the process exits.  May not complete all steps.
+    the process exits. May not complete all steps.
     """
 
     def __init__(
@@ -144,14 +144,10 @@ class UngracefulTerminationHandler:
 
     def handle(self) -> None:
         """Execute best-effort ungraceful teardown."""
-        try:
+        with contextlib.suppress(Exception):
             self._intelligence.purge()
-        except Exception:
-            pass
-        try:
+        with contextlib.suppress(Exception):
             self._audit.write(
                 FC.CRITICAL,
                 {"event": "UNGRACEFUL_TERMINATION", "fsm": "HALTED"},
             )
-        except Exception:
-            pass
