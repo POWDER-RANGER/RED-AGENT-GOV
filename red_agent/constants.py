@@ -3,10 +3,10 @@
 Defines all state enums, classification levels, fault classes, and other constants
 used throughout the framework.
 """
-
 from __future__ import annotations
 
-from enum import Enum, auto
+from enum import Enum
+from enum import auto
 
 
 class AgentState(Enum):
@@ -23,25 +23,25 @@ class AgentState(Enum):
 class FaultClass(Enum):
     """Fault severity classification"""
 
-    ANOMALY = auto()  # Observable but non-critical
-    DEGRADED = auto()  # Compromised functionality, partial operation
-    CRITICAL = auto()  # Immediate halt required
+    ANOMALY = auto()    # Observable but non-critical
+    DEGRADED = auto()   # Compromised functionality, partial operation
+    CRITICAL = auto()   # Immediate halt required
 
 
 class ClassificationLevel(Enum):
     """Intelligence artifact classification levels (ascending)"""
 
-    AMBIENT = auto()  # Public/unclassified
-    SENSITIVE = auto()  # Internal use
-    OPERATIONAL = auto()  # Operational security required
-    CRITICAL = auto()  # Highest classification
+    AMBIENT = auto()     # Public/unclassified
+    SENSITIVE = auto()   # Internal use
+    OPERATIONAL = auto() # Operational security required
+    CRITICAL = auto()    # Highest classification
 
 
 class ArtifactClass(Enum):
     """Intelligence artifact types"""
 
     REAL = auto()  # Genuine intelligence
-    COVER = auto()  # Deception/cover artifact
+    COVER = auto() # Deception/cover artifact
 
 
 class ReviewAction(Enum):
@@ -66,9 +66,9 @@ class GateSuppressionReason(Enum):
     RECIPIENT_UNKNOWN = auto()
     FAULT_CRITICAL = auto()
     D06_FILTER_REJECTED = auto()
-    HEROIC_SIGNAL = auto()  # D03
-    CAPABILITY_SIGNAL = auto()  # D04
-    UNAUTHORIZED_OBSERVER = auto()  # D01/D02
+    HEROIC_SIGNAL = auto()        # D03
+    CAPABILITY_SIGNAL = auto()    # D04
+    UNAUTHORIZED_OBSERVER = auto() # D01/D02
     REEVAL_LIMIT_REACHED = auto()
 
 
