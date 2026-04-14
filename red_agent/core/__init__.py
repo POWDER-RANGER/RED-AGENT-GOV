@@ -1,31 +1,38 @@
-"""red_agent.core — Deterministic runtime engine.
+"""red_agent.core - Deterministic runtime engine sub-package."""
+from __future__ import annotations
 
-Exposes the primary runtime types consumed by ``RedAgent``.
-"""
-
-from .audit import AuditStore, AuditStoreUnavailableError, FaultClass
-from .fsm import AgentFSM
-from .gate import GateDecision, OutputAuthorizationGate, SuppressionReason
-from .intelligence import D06Filter, LifecycleManager
-from .recovery import RecoverySignal, RecoverySignalValidator, generate_recovery_signal
-from .tasking import RecipientClassification, TaskingUnit
-from .timing import StochasticTimingLayer, TimingLayerUnavailableError
+from .audit import AuditStore
+from .constants import (
+    AgentState, ArtifactClass, ClassificationLevel, FaultClass,
+    GateSuppressionReason, OutputDecision, ReviewAction, VALID_TRANSITIONS,
+)
+from .directives import DirectiveContext, DirectiveSet, DirectiveSetResult
+from .fsm import AgentFSM, InvalidTransitionError
+from .gate import GateEvaluation, GateSnapshot, OutputAuthorizationGate
+from .intelligence import (
+    IntelligenceArtifact, IntelligenceStore,
+    RecipientClassification, ThreatModelEntry,
+)
+from .recovery import (
+    NonceRegistry, RecoverySignal, RecoverySignalVerifier,
+    generate_recovery_signal,
+)
+from .tasking import TaskExecutorFn, TaskingEnvelope, TaskingUnit, TaskResult
+from .initialization import InitializationResult, run_initialization
+from .teardown import TeardownResult, UngracefulTerminationHandler, run_teardown
 
 __all__ = [
     "AuditStore",
-    "AuditStoreUnavailableError",
-    "FaultClass",
-    "AgentFSM",
-    "GateDecision",
-    "OutputAuthorizationGate",
-    "SuppressionReason",
-    "D06Filter",
-    "LifecycleManager",
-    "RecoverySignal",
-    "RecoverySignalValidator",
+    "AgentState", "ArtifactClass", "ClassificationLevel", "FaultClass",
+    "GateSuppressionReason", "OutputDecision", "ReviewAction", "VALID_TRANSITIONS",
+    "DirectiveContext", "DirectiveSet", "DirectiveSetResult",
+    "AgentFSM", "InvalidTransitionError",
+    "GateEvaluation", "GateSnapshot", "OutputAuthorizationGate",
+    "IntelligenceArtifact", "IntelligenceStore",
+    "RecipientClassification", "ThreatModelEntry",
+    "NonceRegistry", "RecoverySignal", "RecoverySignalVerifier",
     "generate_recovery_signal",
-    "RecipientClassification",
-    "TaskingUnit",
-    "StochasticTimingLayer",
-    "TimingLayerUnavailableError",
+    "TaskExecutorFn", "TaskingEnvelope", "TaskingUnit", "TaskResult",
+    "InitializationResult", "run_initialization",
+    "TeardownResult", "UngracefulTerminationHandler", "run_teardown",
 ]
