@@ -10,6 +10,7 @@ import os
 import struct
 import time
 
+
 try:
     import psutil
 
@@ -70,7 +71,7 @@ def generate_seed(task_queue_depth: int = 0) -> bytes:
     total_bits = sum(b for _, b in sources)
     if total_bits < 128:
         raise EntropyInsufficientError(
-            f"Scored entropy {total_bits} bits — minimum 128 required; halting."
+            f"Scored entropy {total_bits} bits -- minimum 128 required; halting."
         )
     combined = b"".join(raw for raw, _ in sources)
     return hashlib.blake2b(combined, digest_size=32).digest()
