@@ -3,6 +3,7 @@
 All canonical enumerations used across the red-agent framework.
 Import from ``red_agent`` public surface instead of directly.
 """
+
 from __future__ import annotations
 
 from enum import Enum, unique
@@ -24,9 +25,9 @@ class AgentState(str, Enum):
 class FaultClass(str, Enum):
     """Severity tiers for faults recorded in the audit chain."""
 
-    ANOMALY = "ANOMALY"       # non-fatal, self-healing possible
-    DEGRADED = "DEGRADED"     # reduced capability, human review required
-    CRITICAL = "CRITICAL"     # unrecoverable; triggers teardown
+    ANOMALY = "ANOMALY"  # non-fatal, self-healing possible
+    DEGRADED = "DEGRADED"  # reduced capability, human review required
+    CRITICAL = "CRITICAL"  # unrecoverable; triggers teardown
 
 
 @unique
@@ -79,10 +80,10 @@ class ReviewAction(str, Enum):
 
 
 # ---------------------------------------------------------------------------
-# Transition table — single source of truth for the FSM
+# Transition table - single source of truth for the FSM
 # ---------------------------------------------------------------------------
 
-#: Valid (from_state, to_state) pairs.  Every transition not in this set
+#: Valid (from_state, to_state) pairs. Every transition not in this set
 #: is unconditionally rejected by ``AgentFSM.transition``.
 VALID_TRANSITIONS: frozenset[tuple[AgentState, AgentState]] = frozenset(
     {
