@@ -1,11 +1,11 @@
 """Cryptographic primitives used throughout red_agent.
 
 Provides:
-- ``sha256``        – deterministic hash for audit-chain entries  (Section 4.3.2)
-- ``hmac_sha256`` – keyed MAC, returns hex string
-- ``compute_hmac``– keyed MAC, returns raw bytes (for recovery signals)
-- ``verify_hmac``  – constant-time comparison of expected vs received tag
-- ``secure_zero``  – best-effort in-process memory zeroing for seed buffers
+- ``sha256``        - deterministic hash for audit-chain entries  (Section 4.3.2)
+- ``hmac_sha256`` - keyed MAC, returns hex string
+- ``compute_hmac``- keyed MAC, returns raw bytes (for recovery signals)
+- ``verify_hmac``  - constant-time comparison of expected vs received tag
+- ``secure_zero``  - best-effort in-process memory zeroing for seed buffers
 """
 from __future__ import annotations
 
@@ -13,13 +13,14 @@ import ctypes
 import hashlib
 import hmac
 
+
 # ── SHA-256 ──────────────────────────────────────────────────────────────────
 def sha256(data: bytes) -> str:
     """Return the lowercase hex-encoded SHA-256 digest of *data*."""
     return hashlib.sha256(data).hexdigest()
 
 
-# ── HMAC-SHA256 ──────────────────────────────────────────────────────────────
+# ── HMAC-SHA256 ─────────────────────────────────────────────────────────────
 def hmac_sha256(key: bytes, msg: bytes) -> str:
     """Return the lowercase hex-encoded HMAC-SHA256 of *msg* under *key*."""
     return hmac.new(key, msg, hashlib.sha256).hexdigest()
@@ -36,7 +37,7 @@ def verify_hmac(key: bytes, msg: bytes, tag: bytes) -> bool:
     return hmac.compare_digest(expected, tag)
 
 
-# ── Secure memory zeroing ────────────────────────────────────────────────────
+# ── Secure memory zeroing ───────────────────────────────────────────────────
 def _zero_via_ctypes(buf: bytearray) -> bool:
     """Attempt to zero *buf* in-place using ctypes."""
     try:
@@ -65,7 +66,7 @@ def secure_zero(buf: bytearray) -> bool:
     """
     if _zero_via_ctypes(buf):
         return True
-    # Python-level fallback — slower but always available
+    # Python-level fallback -- slower but always available
     try:
         for i in range(len(buf)):
             buf[i] = 0
