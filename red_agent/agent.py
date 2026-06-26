@@ -157,9 +157,11 @@ class RedAgent:
         try:
             raw_output = unit.execute()
         except Exception as exc:
+            # Fix for CRITICAL #1: Avoid nested lock acquisition (deadlock)
+            # Use a single lock context or RLock, but here we move fault flag inside outer lock
             with self._lock:
                 self._fault_active = True
-            self._fsm.transition(AgentState.DEGRADED, reason=str(exc))
+                self._fsm.transition(AgentState.DEGRADED, reason=str(exc))
             return TaskResult(
                 task_id=envelope.task_id, output=None, suppressed=True
             )
