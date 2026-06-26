@@ -1,4 +1,4 @@
-"""red_agent.core.initialization
+'''red_agent.core.initialization
 
 7-step initialization sequence for the RedAgent.
 
@@ -15,7 +15,7 @@ Steps
 
 All steps write to the audit chain.  A failure in any step raises
 ``InitializationError`` and leaves the FSM in HALTED state.
-"""
+'''
 from __future__ import annotations
 
 import os
@@ -92,7 +92,8 @@ def run_initialization(config: "AgentConfig") -> InitializationResult:
     # ------------------------------------------------------------------ #
     # Step 02 — AuditStore + hash-chain seed                               #
     # ------------------------------------------------------------------ #
-    audit = AuditStore()
+    audit_path = f"/tmp/red-agent-audit-{credentials.session_id}.log"
+    audit = AuditStore(path=audit_path, session_id=credentials.session_id)
     audit.write(
         FC.ANOMALY,
         {
